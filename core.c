@@ -43,7 +43,8 @@ again:
 			//
 			//
 			do_gettimeofday(p->time_s->p_n_t_end);
-			p->time_s->p_n_t_start=prev->time_s->next_p_n_t_start; 
+			p->time_s->p_n_t_start.tv_sec=prev->time_s->next_p_n_t_start.tv_sec; 
+			p->time_s->p_n_t_start.tv_usec=prev->time_s->next_p_n_t_start.tv-usec;
 			
 			return p;
 		}
