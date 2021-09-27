@@ -1,0 +1,61 @@
+--- linux-4.4.283/include/trace/events/sched.h	2021-09-03 15:43:08.000000000 +0800
++++ /usr/src/kernels/linux-4.4.283/include/trace/events/sched.h	2021-09-26 21:04:36.898210334 +0800
+@@ -96,13 +96,55 @@ DEFINE_EVENT(sched_wakeup_template, sche
+ 	     TP_PROTO(struct task_struct *p),
+ 	     TP_ARGS(p));
+ 
+-/*
+- * Tracepoint for waking up a new task:
+- */
+ DEFINE_EVENT(sched_wakeup_template, sched_wakeup_new,
+ 	     TP_PROTO(struct task_struct *p),
+ 	     TP_ARGS(p));
+ 
++/*
++ * Tracepoint for sched_time:
++ */
++DECLARE_EVENT_CLASS(sched_switch_time,
++
++	TP_PROTO(bool preempt,
++		 struct task_struct *prev,
++		 struct task_struct *next),
++
++	TP_ARGS(preempt, prev, next),
++
++	TP_STRUCT__entry(
++		__field(	pid_t,	prev_pid			)
++		__field(	pid_t,	next_pid			)
++		__field(	long long,	in_queue_time		)
++		__field(	long long,	out_queue_time		)
++		__field(	long long,	runnable_time		)
++		__field(	long long,	context_switch_time		)
++		__field(	long long,	pick_next_task_time		)
++	),
++
++	TP_fast_assign(
++		__entry->prev_pid	= prev->pid;
++		__entry->next_pid	= next->pid;
++		__entry->in_queue_time	= next->in_queue_time;
++		__entry->out_queue_time	= next->out_queue_time;
++		__entry->context_switch_time	= next->context_switch_time;
++		__entry->pick_next_task_time	= prev->pick_next_task_time;
++	),
++
++	TP_printk("prev_pid=%d ==> next_pid=%d in_queue_time=%lu [us] out_queue_time=%lu [us] context_switch_time=%lu [us] pick_next_task_time=%lu [us] runnable_time=%lu [us]",
++		__entry->prev_pid, __entry->next_pid, __entry->in_queue_time, __entry->out_queue_time, 
++		__entry->context_switch_time, __entry->pick_next_task_time, __entry->runnable_time)
++);
++
++/*
++ * Tracepoint called when waking a task; this tracepoint is guaranteed to be
++ * called from the waking context.
++ */
++DEFINE_EVENT(sched_switch_time, sched_time,
++	    TP_PROTO(bool preempt,
++			struct task_struct *prev,
++			struct task_struct *next),
++	    TP_ARGS(preempt, prev, next));
++
+ #ifdef CREATE_TRACE_POINTS
+ static inline long __trace_sched_switch_state(bool preempt, struct task_struct *p)
+ {

@@ -1,0 +1,65 @@
+--- linux-4.4.283/kernel/sched/fair.c	2021-09-03 15:43:08.000000000 +0800
++++ /usr/src/kernels/linux-4.4.283/kernel/sched/fair.c	2021-09-27 07:23:02.739007454 +0800
+@@ -33,6 +33,10 @@
+ 
+ #include <trace/events/sched.h>
+ 
++#include <linux/kernel.h>
++#include <linux/timekeeping.h>
++#include <uapi/linux/time.h>
++
+ #include "sched.h"
+ 
+ /*
+@@ -4270,6 +4274,8 @@ enqueue_task_fair(struct rq *rq, struct
+ {
+ 	struct cfs_rq *cfs_rq;
+ 	struct sched_entity *se = &p->se;
++	struct timeval start,end;
++	do_gettimeofday(&start);
+ 
+ 	for_each_sched_entity(se) {
+ 		if (se->on_rq)
+@@ -4305,6 +4311,8 @@ enqueue_task_fair(struct rq *rq, struct
+ 		add_nr_running(rq, 1);
+ 
+ 	hrtick_update(rq);
++	do_gettimeofday(&end);
++	p->in_queue_time = end.tv_usec - start.tv_usec;
+ }
+ 
+ static void set_next_buddy(struct sched_entity *se);
+@@ -4319,6 +4327,8 @@ static void dequeue_task_fair(struct rq
+ 	struct cfs_rq *cfs_rq;
+ 	struct sched_entity *se = &p->se;
+ 	int task_sleep = flags & DEQUEUE_SLEEP;
++	struct timeval start,end;
++	do_gettimeofday(&start);
+ 
+ 	for_each_sched_entity(se) {
+ 		cfs_rq = cfs_rq_of(se);
+@@ -4364,6 +4374,8 @@ static void dequeue_task_fair(struct rq
+ 		sub_nr_running(rq, 1);
+ 
+ 	hrtick_update(rq);
++	do_gettimeofday(&end);
++	p->out_queue_time = end.tv_usec - start.tv_usec;
+ }
+ 
+ #ifdef CONFIG_SMP
+@@ -5415,7 +5427,6 @@ again:
+ 
+ 	if (hrtick_enabled(rq))
+ 		hrtick_start_fair(rq, p);
+-
+ 	return p;
+ simple:
+ 	cfs_rq = &rq->cfs;
+@@ -5436,7 +5447,6 @@ simple:
+ 
+ 	if (hrtick_enabled(rq))
+ 		hrtick_start_fair(rq, p);
+-
+ 	return p;
+ 
+ idle:
