@@ -1,0 +1,19 @@
+33a34,37
+> #include <linux/kernel.h>
+> #include <linux/timekeeping.h>
+> #include <uapi/linux/time.h>
+> 
+4272a4277,4278
+> 	struct timeval start,end;
+> 	do_gettimeofday(&start);
+4307a4314,4317
+> 	do_gettimeofday(&end);
+> 	p->in_queue_time = end.tv_usec - start.tv_usec;
+> 	p->runnable_s = end.tv_sec;
+> 	p->runnable_us = end.tv_usec;
+4320a4331,4332
+> 	struct timeval start,end;
+> 	do_gettimeofday(&start);
+4366a4379,4380
+> 	do_gettimeofday(&end);
+> 	p->out_queue_time = end.tv_usec - start.tv_usec;
