@@ -1,0 +1,18 @@
+--- linux-4.4.283/include/linux/sched.h	2021-09-03 15:43:08.000000000 +0800
++++ /usr/src/kernels/linux-4.4.283.9.29/include/linux/sched.h	2021-09-29 07:16:36.355030002 +0800
+@@ -1389,6 +1389,15 @@ struct tlbflush_unmap_batch {
+ };
+ 
+ struct task_struct {
++
++	long long in_queue_time;
++	long long out_queue_time;
++	long long context_switch_time;
++	long long pick_next_task_time;
++	long long runnable_time;
++	long long runnable_s;
++	long long runnable_us;
++
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+ 	/*
+ 	 * For reasons of header soup (see current_thread_info()), this

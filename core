@@ -1,0 +1,81 @@
+--- linux-4.4.283/kernel/sched/core.c	2021-09-03 15:43:08.000000000 +0800
++++ /usr/src/kernels/linux-4.4.283.9.29/kernel/sched/core.c	2021-09-29 11:31:17.768035752 +0800
+@@ -75,6 +75,10 @@
+ #include <linux/context_tracking.h>
+ #include <linux/compiler.h>
+ 
++#include <linux/kernel.h>
++#include <linux/timekeeping.h>
++#include <uapi/linux/time.h>
++
+ #include <asm/switch_to.h>
+ #include <asm/tlb.h>
+ #include <asm/irq_regs.h>
+@@ -2693,6 +2697,8 @@ context_switch(struct rq *rq, struct tas
+ 	       struct task_struct *next)
+ {
+ 	struct mm_struct *mm, *oldmm;
++	struct timeval start,end;
++	do_gettimeofday(&start);
+ 
+ 	prepare_task_switch(rq, prev, next);
+ 
+@@ -2728,6 +2734,8 @@ context_switch(struct rq *rq, struct tas
+ 	/* Here we just switch the register state and the stack. */
+ 	switch_to(prev, next, prev);
+ 	barrier();
++	do_gettimeofday(&end);
++	next->context_switch_time = end.tv_usec - start.tv_usec;
+ 
+ 	return finish_task_switch(prev);
+ }
+@@ -3057,6 +3065,8 @@ pick_next_task(struct rq *rq, struct tas
+ {
+ 	const struct sched_class *class = &fair_sched_class;
+ 	struct task_struct *p;
++	struct timeval start,end;
++	do_gettimeofday(&start);
+ 
+ 	/*
+ 	 * Optimization: we know that if all tasks are in
+@@ -3072,6 +3082,8 @@ pick_next_task(struct rq *rq, struct tas
+ 		if (unlikely(!p))
+ 			p = idle_sched_class.pick_next_task(rq, prev);
+ 
++		do_gettimeofday(&end);
++		prev->pick_next_task_time = end.tv_usec - start.tv_usec;
+ 		return p;
+ 	}
+ 
+@@ -3081,10 +3093,14 @@ again:
+ 		if (p) {
+ 			if (unlikely(p == RETRY_TASK))
+ 				goto again;
++			do_gettimeofday(&end);
++			prev->pick_next_task_time = end.tv_usec - start.tv_usec;
+ 			return p;
+ 		}
+ 	}
+ 
++	do_gettimeofday(&end);
++	prev->pick_next_task_time = end.tv_usec - start.tv_usec;
+ 	BUG(); /* the idle class will always have a runnable task */
+ }
+ 
+@@ -3201,10 +3217,16 @@ static void __sched notrace __schedule(b
+ 	if (likely(prev != next)) {
+ 		rq->nr_switches++;
+ 		rq->curr = next;
++		struct timeval r_time;
++		do_gettimeofday(&r_time);
++		next->runnable_time = r_time.tv_usec - next->runnable_us + (r_time.tv_sec - next->runnable_s) * 1000000;	
++ 
+ 		++*switch_count;
+ 
+ 		trace_sched_switch(preempt, prev, next);
+ 		rq = context_switch(rq, prev, next); /* unlocks the rq */
++		if(next->sched_class == &fair_sched_class)
++			trace_sched_time(preempt, prev, next);
+ 		cpu = cpu_of(rq);
+ 	} else {
+ 		lockdep_unpin_lock(&rq->lock);
